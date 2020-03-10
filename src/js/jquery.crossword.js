@@ -32,26 +32,23 @@
 			    puzzEl = this,
 				clues = $('#puzzle-clues'),
 				clueLiEls,
-				coords,
 				entryCount = puzz.data.length,
 				entries = [], 
-				rows = [],
-				cols = [],
+				rows = 0,
+				cols = 0,
 				solved = [],
-				tabindex,
 				$actives,
 				activePosition = 0,
+				activeEntry = 0;
 				activeClueIndex = 0,
-				currOri,
-				targetInput,
+				currentOrientation = 'across',
 				mode = 'interacting',
-				solvedToggle = false,
-				z = 0;
+				solvedToggle = false;
 
 			var puzInit = {
 				
 				init: function() {
-					currOri = 'across'; // app's init orientation could move to config object
+					currentOrientation = 'across'; // app's init orientation could move to config object
 					
 					// Reorder the problems array ascending by POSITION
 					puzz.data.sort(function(a,b) {
@@ -61,17 +58,17 @@
 					// Set keyup handlers for the 'entry' inputs that will be added presently
 					puzzEl.delegate('input', 'keyup', function(e){
 						mode = 'interacting';
-						
+						puzInit.checkAnswer(e);
 						
 						// need to figure out orientation up front, before we attempt to highlight an entry
 						switch(e.which) {
 							case 39:
 							case 37:
-								currOri = 'across';
+								currentOrientation = 'across';
 								break;
 							case 38:
 							case 40:
-								currOri = 'down';
+								currentOrientation = 'down';
 								break;
 							default:
 								break;
@@ -90,7 +87,7 @@
 
 							
 							if (e.keyCode === 8 || e.keyCode === 46) {
-								currOri === 'across' ? nav.nextPrevNav(e, 37) : nav.nextPrevNav(e, 38); 
+								currentOrientation === 'across' ? nav.nextPrevNav(e, 37) : nav.nextPrevNav(e, 38); 
 							} else {
 								nav.nextPrevNav(e);
 							}
@@ -163,7 +160,7 @@
 					
 					// Puzzle clues added to DOM in calcCoords(), so now immediately put mouse focus on first clue
 					clueLiEls = $('#puzzle-clues li');
-					$('#' + currOri + ' li' ).eq(0).addClass('clues-active').focus();
+					$('#' + currentOrientation + ' li' ).eq(0).addClass('clues-active').focus();
 				
 					// DELETE FOR BG
 					puzInit.buildTable();
@@ -179,32 +176,36 @@
 					/*
 						Calculate all puzzle entry coordinates, put into entries array
 					*/
-					for (var i = 0, p = entryCount; i < p; ++i) {		
-						// set up array of coordinates for each problem
-						entries.push(i);
-						entries[i] = [];
+					entries = puzz.data.map((word, i) => {
+						// Add a unique identifier to link clues and answers
+						word.id = `${word.position}-${word.orientation}`;
+						let clueId = `clue-${word.id}`;
 
-						for (var x=0, j = puzz.data[i].answer.length; x < j; ++x) {
-							entries[i].push(x);
-							coords = puzz.data[i].orientation === 'across' ? "" + puzz.data[i].startx++ + "," + puzz.data[i].starty + "" : "" + puzz.data[i].startx + "," + puzz.data[i].starty++ + "" ;
-							entries[i][x] = coords; 
-						}
+						// Add clues to DOM
 
-						// while we're in here, add clues to DOM!
-						$('#' + puzz.data[i].orientation).append('<li tabindex="1" data-position="' + i + '">' + puzz.data[i].clue + '</li>'); 
-					}				
-					
-					// Calculate rows/cols by finding max coords of each entry, then picking the highest
-					for (var i = 0, p = entryCount; i < p; ++i) {
-						for (var x=0; x < entries[i].length; x++) {
-							cols.push(entries[i][x].split(',')[0]);
-							rows.push(entries[i][x].split(',')[1]);
-						};
-					}
+						let clueHtml = `<li tabindex="1" data-entry="${i}" data-position="${word.position}" value="${word.position}" id="${clueId}">${word.clue}</li>`;
+						$('#' + word.orientation).append(clueHtml); 
 
-					rows = Math.max.apply(Math, rows) + "";
-					cols = Math.max.apply(Math, cols) + "";
-		
+						let x = word.startx;
+						let y = word.starty;
+
+						// Loop to get coordinates for each letter
+						let coordList = word.answer.split('').map(() => {
+							// Calculate grid size by tracking highest x and y coordinates
+							cols = Math.max(cols, x);
+							rows = Math.max(rows, y);
+
+							let coords = `${x},${y}`;
+							if (word.orientation === 'across') {
+								x++;
+							} else {
+								y++;
+							}
+							return coords;
+						});
+						word.coordList = coordList;
+						return coordList;
+					});
 				},
 				
 				/*
@@ -212,10 +213,10 @@
 					- adds [data-coords] to each <td> cell
 				*/
 				buildTable: function() {
-					for (var i=1; i <= rows; ++i) {
+					for (var y=1; y <= rows; ++y) {
 						tbl.push("<tr>");
 							for (var x=1; x <= cols; ++x) {
-								tbl.push('<td data-coords="' + x + ',' + i + '"></td>');		
+								tbl.push('<td data-coords="' + x + ',' + y + '"></td>');		
 							};
 						tbl.push("</tr>");
 					};
@@ -230,44 +231,30 @@
 					- Adds tabindexes to <inputs> 
 				*/
 				buildEntries: function() {
-					var puzzCells = $('#puzzle td'),
-						light,
-						$groupedLights,
-						hasOffset = false,
-						positionOffset = entryCount - puzz.data[puzz.data.length-1].position; // diff. between total ENTRIES and highest POSITIONS
+					var puzzCells = $('#puzzle td');
+					var	light;
+					var	$groupedLights;
 						
-					for (var x=1, p = entryCount; x <= p; ++x) {
-						var letters = puzz.data[x-1].answer.split('');
+					puzz.data.forEach((word, i) => {
+						word.coordList.forEach(coord => {
+							light = $(puzzCells +'[data-coords="' + coord + '"]');
 
-						for (var i=0; i < entries[x-1].length; ++i) {
-							light = $(puzzCells +'[data-coords="' + entries[x-1][i] + '"]');
-							
-							// check if POSITION property of the entry on current go-round is same as previous. 
-							// If so, it means there's an across & down entry for the position.
-							// Therefore you need to subtract the offset when applying the entry class.
-							if(x > 1 ){
-								if (puzz.data[x-1].position === puzz.data[x-2].position) {
-									hasOffset = true;
-								};
-							}
-							
 							if($(light).empty()){
 								$(light)
-									.addClass('entry-' + (hasOffset ? x - positionOffset : x) + ' position-' + (x-1) )
+									.addClass(`entry-${i} position-${word.position} position-${word.id}`)
 									.append('<input maxlength="1" val="" type="text" tabindex="-1" />');
 							}
-						};
-						
-					};	
+						});
+					})
 					
 					// Put entry number in first 'light' of each entry, skipping it if already present
-					for (var i=1, p = entryCount; i < p; ++i) {
+					puzz.data.forEach(({position}, i) => {
 						$groupedLights = $('.entry-' + i);
 						if(!$('.entry-' + i +':eq(0) span').length){
 							$groupedLights.eq(0)
-								.append('<span>' + puzz.data[i].position + '</span>');
+								.append('<span>' + position + '</span>');
 						}
-					}	
+					});
 					
 					util.highlightEntry();
 					util.highlightClue();
@@ -286,37 +273,47 @@
 					var valToCheck, currVal;
 					
 					util.getActivePositionFromClassGroup($(e.target));
-				
-					valToCheck = puzz.data[activePosition].answer.toLowerCase();
 
-					currVal = $('.position-' + activePosition + ' input')
-						.map(function() {
-					  		return $(this)
-								.val()
-								.toLowerCase();
-						})
-						.get()
-						.join('');
-					
-					//console.log(currVal + " " + valToCheck);
-					if(valToCheck === currVal){	
-						$('.active')
-							.addClass('done')
-							.removeClass('active');
-					
-						$('.clues-active').addClass('clue-done');
+					let done = check(activeEntry);
 
-						solved.push(valToCheck);
-						solvedToggle = true;
-						return;
+					if (!done) {
+						currentOrientation === 'across' ? nav.nextPrevNav(e, 39) : nav.nextPrevNav(e, 40);
 					}
-					
-					currOri === 'across' ? nav.nextPrevNav(e, 39) : nav.nextPrevNav(e, 40);
-					
-					//z++;
-					//console.log(z);
-					//console.log('checkAnswer() solvedToggle: '+solvedToggle);
 
+					// Check the other word if this is an intersection
+					let altEntry = util.getClasses($(e.target).parent(), 'entry')
+						.filter(num => num != activeEntry)[0];
+
+					if(altEntry) {
+						check(altEntry)
+					}
+
+					function check(entry) {
+						valToCheck = puzz.data[entry].answer.toLowerCase();
+
+						currVal = $('.entry-' + entry + ' input')
+							.map(function() {
+								  return $(this)
+									.val()
+									.toLowerCase();
+							})
+							.get()
+							.join('');
+						
+						//console.log(currVal + " " + valToCheck);
+						if(valToCheck === currVal){	
+							$(`.entry-${entry} input`)
+								.addClass('done')
+								.prop('readonly', true)
+								.removeClass('active');
+						
+							$('.clues-active').addClass('clue-done');
+	
+							solved.push(valToCheck);
+							solvedToggle = true;
+							return true;
+						}
+					}
 				}				
 
 
@@ -327,8 +324,7 @@
 				
 				nextPrevNav: function(e, override) {
 
-					var len = $actives.length,
-						struck = override ? override : e.which,
+					var struck = override ? override : e.which,
 						el = $(e.target),
 						p = el.parent(),
 						ps = el.parents(),
@@ -389,15 +385,14 @@
 				},
 	
 				updateByNav: function(e) {
-					var target;
 					
 					$('.clues-active').removeClass('clues-active');
 					$('.active').removeClass('active');
 					$('.current').removeClass('current');
 					currIndex = 0;
 
-					target = e.target;
 					activePosition = $(e.target).data('position');
+					activeEntry = $(e.target).data('entry');
 					
 					util.highlightEntry();
 					util.highlightClue();
@@ -407,7 +402,7 @@
 					$('.active').eq(0).addClass('current');
 					
 					// store orientation for 'smart' auto-selecting next input
-					currOri = $('.clues-active').parent('ol').prop('id');
+					currentOrientation = $('.clues-active').parent('ol').prop('id');
 										
 					activeClueIndex = $(clueLiEls).index(e.target);
 					//console.log('updateByNav() activeClueIndex: '+activeClueIndex);
@@ -416,7 +411,7 @@
 			
 				// Sets activePosition var and adds active class to current entry
 				updateByEntry: function(e, next) {
-					var classes, next, clue, e1Ori, e2Ori, e1Cell, e2Cell;
+					var next, clue;
 					
 					if(e.keyCode === 9 || next){
 						// handle tabbing through problems, which keys off clues and requires different handling		
@@ -425,12 +420,14 @@
 						$('.clues-active').removeClass('.clues-active');
 												
 						next = $(clueLiEls[activeClueIndex]);
-						currOri = next.parent().prop('id');
+						currentOrientation = next.parent().prop('id');
 						activePosition = $(next).data('position');
+						activeEntry = $(next).data('entry');
 												
 						// skips over already-solved problems
 						util.getSkips(activeClueIndex);
 						activePosition = $(clueLiEls[activeClueIndex]).data('position');
+						activeEntry = $(clueLiEls[activeClueIndex]).data('entry');
 						
 																								
 					} else {
@@ -438,10 +435,10 @@
 					
 						util.getActivePositionFromClassGroup(e.target);
 						
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
+						clue = $(clueLiEls + '[data-entry=' + activeEntry + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 						
-						currOri = clue.parent().prop('id');
+						currentOrientation = clue.parent().prop('id');
 						
 					}
 						
@@ -458,68 +455,69 @@
 			var util = {
 				highlightEntry: function() {
 					// this routine needs to be smarter because it doesn't need to fire every time, only
-					// when activePosition changes
+					// when activeEntry changes
 					$actives = $('.active');
 					$actives.removeClass('active');
-					$actives = $('.position-' + activePosition + ' input').addClass('active');
+					$actives = $('.entry-' + activeEntry + ' input').addClass('active');
 					$actives.eq(0).focus();
 					$actives.eq(0).select();
 				},
 				
 				highlightClue: function() {
-					var clue;				
 					$('.clues-active').removeClass('clues-active');
-					$(clueLiEls + '[data-position=' + activePosition + ']').addClass('clues-active');
+					var clue = $(clueLiEls + '[data-entry=' + activeEntry + ']');				
+					clue.addClass('clues-active');
 					
 					if (mode === 'interacting') {
-						clue = $(clueLiEls + '[data-position=' + activePosition + ']');
 						activeClueIndex = $(clueLiEls).index(clue);
 					};
 				},
 				
+				// Gets a list of numbers of a given type from the given cell
 				getClasses: function(light, type) {
 					if (!light.length) return false;
 					
-					var classes = $(light).prop('class').split(' '),
-					classLen = classes.length,
-					positions = []; 
-
-					// pluck out just the position classes
-					for(var i=0; i < classLen; ++i){
-						if (!classes[i].indexOf(type) ) {
-							positions.push(classes[i]);
-						}
-					}
-					
-					return positions;
+					return $(light).prop('class').split(' ')
+						.filter(str => str.includes(type))
+						.map(str => str.replace(/\D/g, ''));
 				},
 
 				getActivePositionFromClassGroup: function(el){
 
-						classes = util.getClasses($(el).parent(), 'position');
+						let entries = util.getClasses($(el).parent(), 'entry');
 
-						if(classes.length > 1){
-							// get orientation for each reported position
-							e1Ori = $(clueLiEls + '[data-position=' + classes[0].split('-')[1] + ']').parent().prop('id');
-							e2Ori = $(clueLiEls + '[data-position=' + classes[1].split('-')[1] + ']').parent().prop('id');
+						if(entries.length > 1){
+							// get orientation for each reported entry number
+							let e1Ori = $(clueLiEls + '[data-entry=' + entries[0] + ']').parent().prop('id');
+							let e2Ori = $(clueLiEls + '[data-entry=' + entries[1] + ']').parent().prop('id');
 
 							// test if clicked input is first in series. If so, and it intersects with
 							// entry of opposite orientation, switch to select this one instead
-							e1Cell = $('.position-' + classes[0].split('-')[1] + ' input').index(el);
-							e2Cell = $('.position-' + classes[1].split('-')[1] + ' input').index(el);
+							let e1Cell = $('.entry-' + entries[0] + ' input').index(el);
+							let e2Cell = $('.entry-' + entries[1] + ' input').index(el);
+
+							// if(mode === "setting ui"){
+							// 	currentOrientation = e1Cell === 0 ? e1Ori : e2Ori; // change orientation if cell clicked was first in a entry of opposite direction
+							// }
 
 							if(mode === "setting ui"){
-								currOri = e1Cell === 0 ? e1Ori : e2Ori; // change orientation if cell clicked was first in a entry of opposite direction
+								if (e1Cell === 0) {
+									currentOrientation = e1Ori;
+								} else if (e2Cell === 0) {
+									currentOrientation = e2Ori;
+								}
 							}
 
-							if(e1Ori === currOri){
-								activePosition = classes[0].split('-')[1];		
-							} else if(e2Ori === currOri){
-								activePosition = classes[1].split('-')[1];
+
+							if(e1Ori === currentOrientation){
+								activeEntry = entries[0];		
+							} else if(e2Ori === currentOrientation){
+								activeEntry = entries[1];
 							}
 						} else {
-							activePosition = classes[0].split('-')[1];						
+							activeEntry = entries[0];						
 						}
+						activePosition = puzz.data[activeEntry].position;
 						
 						console.log('getActivePositionFromClassGroup activePosition: '+activePosition);
 						
