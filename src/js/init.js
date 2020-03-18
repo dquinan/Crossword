@@ -41,7 +41,8 @@ function initializePuzzle (inputArray) {
 		console.log('puzzleData:');
 		console.log(puzzleData);
 	
-		// Finally render the crossword puzzle
-		$('#puzzle-wrapper').crossword(puzzleData);
+		// Finally clear any old data and render the crossword puzzle
+		$('#puzzle-clues').remove();
+		$('#puzzle-wrapper').empty().crossword(puzzleData);
 	});
 };
