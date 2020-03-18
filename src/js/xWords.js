@@ -114,12 +114,8 @@ var xWords = {
 	 this.bestFit = null;
 
 	 // LOAD ALL WORDS TWO OR MORE LETTERS LONG
-	 for (var x=0; x < arrayOfWords.length; x++){
-		 if (arrayOfWords[x].trim().length > 1){
-			  this.Words.push(new Word(arrayOfWords[x]));
-		 }
-	 }
-
+	 this.Words = arrayOfWords.map(word => new Word(word))
+	 .filter(({word}) => word.length > 1); // Exclude single-character words
 
 	 do {
 
@@ -577,42 +573,47 @@ function Position(x,y,direction,crossingPoint){
 *
 **/
 function Word(value){
- // Handles either a string or an object as input
- if (typeof value === 'string') {
-	 value = value.trim();
-	 var pos = value.indexOf(',');
-	 if ((pos > 0)&&(pos < value.length - 1)){
-		 this.word = value.substr(0,pos);
-		 this.clue = value.substr(pos + 1);
-	 } else {
-		 xWords.sErrors += 'Missing clue: ' + value + '<br/>'
-		 this.word = value;
-		 this.clue = value;
-	 }
- } else {
-	 if (value.word && (value.clue || value.quetsion)) {
-		 this.word = value.word;
-		 this.clue = value.clue || value.quetsion;
-	 }
- }
+	// Handles either a string or an object as input
+	if (typeof value === 'string') {
+		value = value.trim();
+		var pos = value.indexOf(',');
+		if ((pos > 0)&&(pos < value.length - 1)){
+			this.word = value.substr(0,pos);
+			this.clue = value.substr(pos + 1);
+		} else {
+			xWords.sErrors += 'Missing clue: ' + value + '<br/>'
+			this.word = value;
+			this.clue = value;
+		}
+	} else {
+		// Handles both clue/word and question/answer formats
+		if ((value.word || value.answer) && (value.clue || value.question)) {
+			this.word = value.word || value.answer;
+			this.clue = value.clue || value.question;
+		}
+	}
+
+	// Normalizes words to lowercase and removes invalid characters
+	this.word = this.word.toLowerCase()
+	.replace(/\W/g, '') 
  
- this.crossingPositions = new Array();
- this.availablePositions = new Array();
- this.orphaned = true;
- this.posIndex = -1;
- this.chosenPosition = null;
- this.ResetArrays = function(){
-	 this.crossingPositions = new Array();
-	 this.availablePositions = new Array();
- };
- 
- this.Reset = function(){
-	 this.crossingPositions = new Array();
-	 this.availablePositions = new Array();
-	 this.orphaned = true;
-	 this.posIndex = -1;
-	 this.chosenPosition = null;
- };
+	this.crossingPositions = new Array();
+	this.availablePositions = new Array();
+	this.orphaned = true;
+	this.posIndex = -1;
+	this.chosenPosition = null;
+	this.ResetArrays = function(){
+		this.crossingPositions = new Array();
+		this.availablePositions = new Array();
+	};
+	
+	this.Reset = function(){
+		this.crossingPositions = new Array();
+		this.availablePositions = new Array();
+		this.orphaned = true;
+		this.posIndex = -1;
+		this.chosenPosition = null;
+	};
 }
 
 /**
