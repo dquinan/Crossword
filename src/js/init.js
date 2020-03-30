@@ -41,8 +41,17 @@ function initializePuzzle (inputArray) {
 		console.log('puzzleData:');
 		console.log(puzzleData);
 	
+		// We listen to the resize event
+		window.addEventListener('resize', _.debounce(setHeight, 250));
+		setHeight();
+
 		// Finally clear any old data and render the crossword puzzle
 		$('#puzzle-clues').remove();
 		$('#puzzle-wrapper').empty().crossword(puzzleData);
+
+		function setHeight(){
+			let vh = window.innerHeight * 0.01;
+			document.documentElement.style.setProperty('--vh', `${vh}px`);
+		}
 	});
 };

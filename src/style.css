@@ -88,7 +88,7 @@ input.done {
 #puzzle-clues {
     width: 100%;
     padding: 3px;
-    height: calc(100vh - 100vw);
+    height: calc((var(--vh, 1vh) * 100) - 100vw);
     overflow-y: auto;
 }
 

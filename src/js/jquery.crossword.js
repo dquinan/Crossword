@@ -28,7 +28,7 @@
 			this.append('<div id=puzzle>');
 			// this.append('<hr/>');
 			this.append('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
-			
+
 			// initialize some variables
 			var tbl = ['<table id="puzzle">'],
 			    puzzEl = $(this).find('#puzzle'),
