@@ -25,11 +25,13 @@
 			
 			// append clues markup after puzzle wrapper div
 			// This should be moved into a configuration object
-			this.after('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
+			this.append('<div id=puzzle>');
+			// this.append('<hr/>');
+			this.append('<div id="puzzle-clues"><h2>Across</h2><ol id="across"></ol><h2>Down</h2><ol id="down"></ol></div>');
 			
 			// initialize some variables
 			var tbl = ['<table id="puzzle">'],
-			    puzzEl = this,
+			    puzzEl = $(this).find('#puzzle'),
 				clues = $('#puzzle-clues'),
 				clueLiEls,
 				entryCount = puzz.data.length,

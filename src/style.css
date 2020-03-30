@@ -1,0 +1,99 @@
+/*
+    Default puzzle styling
+*/
+body {
+    font: 62.5%/1.3em Helvetica, sans-serif;
+    width: 90.3%;
+    margin: 10px auto;
+}
+
+table { 
+    border-collapse: collapse; 
+    border-spacing: 0; 
+    width: 100vw;
+    height: 100vw;
+}
+
+table tr{
+    width: 100%;
+}
+
+table td {
+    width: calc(10vmin - 1px);
+    height: calc(10vmin - 1px);
+    border: 1px solid #cdcdcd;
+    padding: 0;
+    margin: 0;
+    background-color: #555;
+    position: relative;
+}
+
+td input {
+    padding: 0em;
+    width: 100%;
+    height: 100%;
+    border: none;
+    text-align: center;
+    font-size: 3em;
+    font-family: monospace;
+    color: #888;
+    background-color: #f4f4f4;
+}
+
+td input:focus {
+    background-color: #fff;
+}
+
+td span {
+    color: #444;
+    font-size: 0.8em;
+    position: absolute;
+    top: -1px;
+    left: 1px;
+}
+
+input.done {
+    font-weight: bold;
+    color: green;
+}
+
+.active,
+.clues-active {
+    background-color: #ddd;
+}
+
+.clue-done {
+    color: #999;
+    text-decoration: line-through;
+}
+
+#puzzle-wrapper {
+    position: fixed; 
+    top: 0; 
+    right: 0; 
+    border: 0;
+    padding: 0px;
+    width: 100%;
+    height: 100vh;
+    padding: 0px;
+    overflow: hidden;
+}
+
+#puzzle {
+    width: 100vw;
+    height: calc(100vw + 1px);
+    overflow-y: auto;
+}
+
+#puzzle-clues {
+    width: 100%;
+    padding: 3px;
+    height: calc(100vh - 100vw);
+    overflow-y: auto;
+}
+
+#puzzle-clues li{
+    font-size: 1.2em;
+    margin: .3em;
+    line-height: 1.6em;
+}

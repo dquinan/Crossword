@@ -2,8 +2,8 @@
 function initializePuzzle (inputArray) {
 	jQuery(function ($) {
 		// Adjustable size limits
-		const VERTICAL_BOXES = 16;
-		const HORIZONTAL_BOXES = 12;
+		const VERTICAL_BOXES = 10;
+		const HORIZONTAL_BOXES = 10;
 
 		// Use xWord to generate a layout
 		var {words, grid} = xWords.Create(VERTICAL_BOXES, HORIZONTAL_BOXES, inputArray);
